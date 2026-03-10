@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "declaration": true,
+    "lib": ["ES2020"],
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "outDir": "./dist",
+    "rootDir": ".",
+    "tsBuildInfoFile": "./.tsbuildinfo/test.tsbuildinfo",
+    "types": ["node", "mocha"]
+  },
+  "include": ["test/**/*.ts", "types/**/*.d.ts"],
+  "references": [{ "path": "./tsconfig.extension.json" }, { "path": "./tsconfig.webview.json" }],
+  "exclude": ["dist", "node_modules"]
+}

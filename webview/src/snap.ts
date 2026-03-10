@@ -1,22 +1,30 @@
-import { $, $$, redraw, once, setVar } from './util.js';
+import type {
+  CodeSnapConfig,
+  CopyFailedMessage,
+  SaveMessage,
+  SaveUnavailableMessage
+} from '../../types/contracts';
+
+import { $$, $, once, redraw, setVar } from './util.js';
 import { vscode } from './vscode.js';
 
-const windowNode = $('#window');
-const snippetContainerNode = $('#snippet-container');
-
-const flashFx = $('#flash-fx');
+const windowNode = $<HTMLElement>('#window');
+const snippetContainerNode = $<HTMLElement>('#snippet-container');
+const flashFx = $<HTMLElement>('#flash-fx');
 
 const SNAP_SCALE = 2;
 
-const postUnavailable = (config, message, type = 'saveUnavailable') =>
-  vscode.postMessage({
-    type,
+const postUnavailable = (config: CodeSnapConfig | null, message: string): void => {
+  const payload: SaveUnavailableMessage = {
+    type: 'saveUnavailable',
     message,
     data: null,
-    action: config && config.shutterAction
-  });
+    action: config?.shutterAction ?? null
+  };
+  vscode.postMessage(payload);
+};
 
-export const cameraFlashAnimation = async () => {
+export const cameraFlashAnimation = async (): Promise<void> => {
   flashFx.style.display = 'block';
   redraw(flashFx);
   flashFx.style.opacity = '0';
@@ -25,26 +33,21 @@ export const cameraFlashAnimation = async () => {
   flashFx.style.opacity = '1';
 };
 
-export const takeSnap = async (config) => {
+export const takeSnap = async (config: CodeSnapConfig | null): Promise<void> => {
   if (!config) {
     postUnavailable(null, 'CodeSnap 📸: Preview is not ready yet.');
     return;
   }
 
   const target = config.target === 'container' ? snippetContainerNode : windowNode;
-  if (!target || !target.querySelector('.line')) {
-    postUnavailable(
-      config,
-      'CodeSnap 📸: Preview is empty, so there is nothing to capture yet.'
-    );
+  if (!target.querySelector('.line')) {
+    postUnavailable(config, 'CodeSnap 📸: Preview is empty, so there is nothing to capture yet.');
     return;
   }
 
-  if (!globalThis.domtoimage || typeof globalThis.domtoimage.toPng !== 'function') {
-    postUnavailable(
-      config,
-      'CodeSnap 📸: Image rendering is not available in this webview.'
-    );
+  const domToImage = globalThis.domtoimage;
+  if (!domToImage || typeof domToImage.toPng !== 'function') {
+    postUnavailable(config, 'CodeSnap 📸: Image rendering is not available in this webview.');
     return;
   }
 
@@ -54,14 +57,19 @@ export const takeSnap = async (config) => {
       setVar('container-background-color', 'transparent');
     }
 
-    const url = await globalThis.domtoimage.toPng(target, {
+    const url = await domToImage.toPng(target, {
       bgColor: 'transparent',
       scale: SNAP_SCALE,
       postProcess: (node) => {
-        $$('#snippet-container, #snippet, .line, .line-code span', node).forEach(
-          (span) => (span.style.width = 'unset')
+        const root = node as ParentNode;
+        $$<HTMLElement>('#snippet-container, #snippet, .line, .line-code span', root).forEach(
+          (span) => {
+            span.style.width = 'unset';
+          }
         );
-        $$('.line-code', node).forEach((span) => (span.style.width = '100%'));
+        $$<HTMLElement>('.line-code', root).forEach((span) => {
+          span.style.width = '100%';
+        });
       }
     });
 
@@ -72,11 +80,12 @@ export const takeSnap = async (config) => {
         !navigator.clipboard ||
         typeof navigator.clipboard.write !== 'function'
       ) {
-        vscode.postMessage({
+        const payload: CopyFailedMessage = {
           type: 'copyFailed',
           data,
           message: 'CodeSnap 📸: Clipboard image copy is not available in this webview.'
-        });
+        };
+        vscode.postMessage(payload);
         return;
       }
 
@@ -84,26 +93,29 @@ export const takeSnap = async (config) => {
         const binary = atob(data);
         const array = new Uint8Array(binary.length);
         for (let i = 0; i < binary.length; i++) array[i] = binary.charCodeAt(i);
+
         const blob = new Blob([array], { type: 'image/png' });
         await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
         await cameraFlashAnimation();
       } catch (error) {
-        vscode.postMessage({
+        const payload: CopyFailedMessage = {
           type: 'copyFailed',
           data,
           message: `CodeSnap 📸: ${
-            error && error.message ? error.message : 'Failed to copy image to the clipboard.'
+            error instanceof Error ? error.message : 'Failed to copy image to the clipboard.'
           }`
-        });
+        };
+        vscode.postMessage(payload);
       }
     } else {
-      vscode.postMessage({ type: config.shutterAction, data });
+      const payload: SaveMessage = { type: 'save', data };
+      vscode.postMessage(payload);
     }
   } catch (error) {
     postUnavailable(
       config,
       `CodeSnap 📸: ${
-        error && error.message ? error.message : 'Failed to render the image preview.'
+        error instanceof Error ? error.message : 'Failed to render the image preview.'
       }`
     );
   } finally {

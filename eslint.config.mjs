@@ -1,51 +1,69 @@
-import { browserGlobals, mochaGlobals, nodeGlobals } from "./eslint-globals.mjs";
+import { browserGlobals, mochaGlobals, nodeGlobals } from './eslint-globals.mjs';
+import tsParser from '@typescript-eslint/parser';
+import tsPlugin from '@typescript-eslint/eslint-plugin';
+
+const typeScriptRules = {
+  ...tsPlugin.configs.recommended.rules
+};
 
 export default [
-    {
-        files: ["**/*.js"],
+  {
+    ignores: ['dist/**', 'node_modules/**', '*.vsix']
+  },
+  {
+    files: ['**/*.mjs'],
 
-        languageOptions: {
-            ecmaVersion: "latest",
-            sourceType: "commonjs",
-            globals: {
-                ...nodeGlobals,
-            },
-        },
-    },
-    {
-        files: ["**/*.mjs"],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: {
+        ...nodeGlobals
+      }
+    }
+  },
+  {
+    files: ['**/*.ts', '**/*.d.ts'],
 
-        languageOptions: {
-            ecmaVersion: "latest",
-            sourceType: "module",
-            globals: {
-                ...nodeGlobals,
-            },
-        },
+    plugins: {
+      '@typescript-eslint': tsPlugin
     },
-    {
-        files: ["webview/**/*.{js,mjs}"],
 
-        languageOptions: {
-            ecmaVersion: "latest",
-            sourceType: "module",
-            globals: {
-                ...browserGlobals,
-                acquireVsCodeApi: "readonly",
-                domtoimage: "readonly",
-            },
-        },
+    languageOptions: {
+      parser: tsParser,
+      ecmaVersion: 'latest',
+      sourceType: 'module'
     },
-    {
-        files: ["test/**/*.js"],
 
-        languageOptions: {
-            ecmaVersion: "latest",
-            sourceType: "commonjs",
-            globals: {
-                ...mochaGlobals,
-                ...nodeGlobals,
-            },
-        },
-    },
+    rules: typeScriptRules
+  },
+  {
+    files: ['src/**/*.ts', 'types/**/*.d.ts'],
+
+    languageOptions: {
+      globals: {
+        ...nodeGlobals
+      }
+    }
+  },
+  {
+    files: ['webview/src/**/*.ts'],
+
+    languageOptions: {
+      globals: {
+        ...browserGlobals,
+        acquireVsCodeApi: 'readonly',
+        domtoimage: 'readonly'
+      }
+    }
+  },
+  {
+    files: ['test/**/*.ts'],
+
+    languageOptions: {
+      globals: {
+        ...mochaGlobals,
+        ...nodeGlobals
+      }
+    }
+  }
 ];

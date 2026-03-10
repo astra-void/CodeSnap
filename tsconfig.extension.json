@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "declaration": true,
+    "lib": ["ES2020"],
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "outDir": "./dist",
+    "rootDir": ".",
+    "tsBuildInfoFile": "./.tsbuildinfo/extension.tsbuildinfo",
+    "types": ["node", "vscode"]
+  },
+  "include": ["src/**/*.ts", "types/**/*.d.ts"],
+  "exclude": ["dist", "node_modules"]
+}

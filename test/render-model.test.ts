@@ -1,12 +1,23 @@
-'use strict';
+import { strict as assert } from 'node:assert';
 
-const assert = require('assert').strict;
-const {
-  buildPlainLines,
-  buildTokenizedLine,
-  splitLines,
-  stripCommonIndent
-} = require('../src/render-model');
+const { buildPlainLines, buildTokenizedLine, splitLines, stripCommonIndent } =
+  require('../src/render-model') as {
+    buildPlainLines: (
+      lines: readonly string[],
+      startLine?: number
+    ) => Array<{ lineNumber: number }>;
+    buildTokenizedLine: (
+      lineText: string,
+      tokens: ArrayLike<number>,
+      colorMap: readonly string[],
+      lineNumber: number
+    ) => {
+      lineNumber: number;
+      spans: Array<{ text: string; color: string | null; fontStyle: string }>;
+    };
+    splitLines: (text: string) => string[];
+    stripCommonIndent: (lines: readonly string[]) => string[];
+  };
 
 describe('render-model', () => {
   it('splits selections into lines and preserves trailing blanks', () => {
@@ -27,7 +38,7 @@ describe('render-model', () => {
 
   it('builds plain lines with the configured starting line', () => {
     assert.deepStrictEqual(
-      buildPlainLines(['alpha', 'beta'], 9).map((line) => line.lineNumber),
+      buildPlainLines(['alpha', 'beta'], 9).map((line: { lineNumber: number }) => line.lineNumber),
       [10, 11]
     );
   });

@@ -29,7 +29,7 @@
   "categories": [
     "Other"
   ],
-  "main": "./src/extension.js",
+  "main": "./dist/src/extension.js",
   "contributes": {
     "commands": [
       {
@@ -128,16 +128,21 @@
   },
   "scripts": {
     "lint": "eslint .",
-    "test": "mocha \"test/**/*.test.js\"",
-    "format": "prettier --write \"**/*.{js,jsx,md,json,css,prettierrc,eslintrc,html}\"",
-    "check:format": "prettier --check \"**/*.{js,jsx,md,json,css,prettierrc,eslintrc,html}\"",
-    "check": "npm run lint && npm run check:format"
+    "build": "tsc -b",
+    "clean": "tsc -b --clean",
+    "typecheck": "tsc -p tsconfig.extension.json --noEmit && tsc -p tsconfig.webview.json --noEmit && tsc -p tsconfig.test.json --noEmit",
+    "test": "npm run build && mocha \"dist/test/**/*.test.js\"",
+    "format": "prettier --write \"**/*.{ts,md,json,css,mjs,html}\"",
+    "check:format": "prettier --check \"**/*.{ts,md,json,css,mjs,html}\"",
+    "check": "npm run lint && npm run typecheck && npm run check:format"
   },
   "devDependencies": {
     "@types/glob": "^9.0.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "^25.4.0",
     "@types/vscode": "^1.110.0",
+    "@typescript-eslint/eslint-plugin": "^8.57.0",
+    "@typescript-eslint/parser": "^8.57.0",
     "@vscode/vsce": "^3.7.1",
     "eslint": "^10.0.3",
     "eslint-config-adpyke-es6": "^1.4.13",

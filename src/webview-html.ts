@@ -1,6 +1,25 @@
-'use strict';
+type WebviewUri = string | { toString(): string };
 
-const buildWebviewHtml = ({ cspSource, nonce, styleUri, domToImageUri, scriptUri }) => `<!DOCTYPE html>
+const toUriString = (value: WebviewUri): string => String(value);
+
+export const buildWebviewHtml = ({
+  cspSource,
+  nonce,
+  styleUri,
+  domToImageUri,
+  scriptUri
+}: {
+  cspSource: string;
+  nonce: string;
+  styleUri: WebviewUri;
+  domToImageUri: WebviewUri;
+  scriptUri: WebviewUri;
+}): string => {
+  const styleHref = toUriString(styleUri);
+  const domToImageHref = toUriString(domToImageUri);
+  const scriptHref = toUriString(scriptUri);
+
+  return `<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -10,8 +29,8 @@ const buildWebviewHtml = ({ cspSource, nonce, styleUri, domToImageUri, scriptUri
       content="default-src 'none'; img-src ${cspSource} data:; script-src 'nonce-${nonce}' ${cspSource}; style-src 'unsafe-inline' ${cspSource}; font-src ${cspSource};"
     />
     <title>CodeSnap</title>
-    <link rel="stylesheet" href="${styleUri}" />
-    <script nonce="${nonce}" src="${domToImageUri}"></script>
+    <link rel="stylesheet" href="${styleHref}" />
+    <script nonce="${nonce}" src="${domToImageHref}"></script>
     <script nonce="${nonce}" type="module">
       const vscode =
         globalThis.__codesnapVsCodeApi || (globalThis.__codesnapVsCodeApi = acquireVsCodeApi());
@@ -41,7 +60,7 @@ const buildWebviewHtml = ({ cspSource, nonce, styleUri, domToImageUri, scriptUri
       };
 
       whenDomReady
-        .then(() => import("${scriptUri}"))
+        .then(() => import("${scriptHref}"))
         .then(({ bootstrap }) => bootstrap())
         .catch((error) => {
           const message =
@@ -135,5 +154,4 @@ const buildWebviewHtml = ({ cspSource, nonce, styleUri, domToImageUri, scriptUri
     <div id="flash-fx"></div>
   </body>
 </html>`;
-
-module.exports = { buildWebviewHtml };
+};

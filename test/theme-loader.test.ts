@@ -1,7 +1,9 @@
-'use strict';
+import { strict as assert } from 'node:assert';
 
-const assert = require('assert').strict;
-const { mergeRawThemes, toRawTheme } = require('../src/theme-loader');
+const { mergeRawThemes, toRawTheme } = require('../src/theme-loader') as {
+  mergeRawThemes: (...themes: unknown[]) => unknown;
+  toRawTheme: (themeDocument: unknown) => unknown;
+};
 
 describe('theme-loader', () => {
   it('normalizes TextMate settings themes', () => {

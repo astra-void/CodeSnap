@@ -1,29 +1,36 @@
-import { $, setVar, calcTextWidth } from './util.js';
+import type {
+  ClipboardPayload,
+  CodeSnapConfig,
+  RenderLine,
+  RenderToken
+} from '../../types/contracts';
 
-const snippetNode = $('#snippet');
-const pasteTargetNode = $('#clipboard-paste-target');
+import { $, calcTextWidth, setVar } from './util.js';
 
-const applyTokenStyle = (node, token) => {
+const snippetNode = $<HTMLElement>('#snippet');
+const pasteTargetNode = $<HTMLElement>('#clipboard-paste-target');
+
+const applyTokenStyle = (node: HTMLSpanElement, token: RenderToken): void => {
   if (token.color) node.style.color = token.color;
   if (!token.fontStyle) return;
 
   if (token.fontStyle.includes('italic')) node.style.fontStyle = 'italic';
   if (token.fontStyle.includes('bold')) node.style.fontWeight = 'bold';
 
-  const textDecorations = [];
+  const textDecorations: string[] = [];
   if (token.fontStyle.includes('underline')) textDecorations.push('underline');
   if (token.fontStyle.includes('strikethrough')) textDecorations.push('line-through');
   if (textDecorations.length) node.style.textDecoration = textDecorations.join(' ');
 };
 
-const createTokenLineNode = (config, line) => {
+const createTokenLineNode = (config: CodeSnapConfig, line: RenderLine): HTMLDivElement => {
   const lineNode = document.createElement('div');
   lineNode.classList.add('line');
 
   if (config.showLineNumbers) {
     const lineNumberNode = document.createElement('div');
     lineNumberNode.classList.add('line-number');
-    lineNumberNode.textContent = line.lineNumber;
+    lineNumberNode.textContent = String(line.lineNumber);
     lineNode.appendChild(lineNumberNode);
   }
 
@@ -47,12 +54,12 @@ const createTokenLineNode = (config, line) => {
   return lineNode;
 };
 
-const setupLines = (node, config) => {
-  Array.from(node.querySelectorAll(':scope > br')).forEach(
-    (row) => (row.outerHTML = '<div>&nbsp;</div>')
-  );
+const setupLines = (node: HTMLElement, config: CodeSnapConfig): void => {
+  Array.from(node.querySelectorAll(':scope > br')).forEach((row) => {
+    row.outerHTML = '<div>&nbsp;</div>';
+  });
 
-  const rows = Array.from(node.querySelectorAll(':scope > div'));
+  const rows = Array.from(node.querySelectorAll<HTMLElement>(':scope > div'));
   setVar('line-number-width', calcTextWidth(rows.length + config.startLine));
 
   rows.forEach((row, idx) => {
@@ -63,7 +70,7 @@ const setupLines = (node, config) => {
     if (config.showLineNumbers) {
       const lineNum = document.createElement('div');
       lineNum.classList.add('line-number');
-      lineNum.textContent = idx + 1 + config.startLine;
+      lineNum.textContent = String(idx + 1 + config.startLine);
       newRow.appendChild(lineNum);
     }
 
@@ -84,42 +91,47 @@ const setupLines = (node, config) => {
   });
 };
 
-const stripInitialIndent = (node) => {
+const stripInitialIndent = (node: HTMLElement): void => {
   const regIndent = /^\s+/u;
-  const initialSpans = Array.from(node.querySelectorAll(':scope > div > span:first-child'));
-  if (!initialSpans.length || initialSpans.some((span) => !regIndent.test(span.textContent))) return;
-
-  const minIndent = Math.min(
-    ...initialSpans.map((span) => span.textContent.match(regIndent)[0].length)
+  const initialSpans = Array.from(
+    node.querySelectorAll<HTMLSpanElement>(':scope > div > span:first-child')
   );
-  initialSpans.forEach((span) => (span.textContent = span.textContent.slice(minIndent)));
+  if (!initialSpans.length) return;
+
+  const matches = initialSpans.map((span) => (span.textContent ?? '').match(regIndent));
+  if (matches.some((match) => !match)) return;
+
+  const minIndent = Math.min(...matches.map((match) => match![0].length));
+  initialSpans.forEach((span) => {
+    span.textContent = (span.textContent ?? '').slice(minIndent);
+  });
 };
 
-const escapePlainText = (text) => {
+const escapePlainText = (text: string): string => {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
 };
 
-const getClipboardHtml = ({ html, text }) => {
+const getClipboardHtml = ({ html, text }: ClipboardPayload): string => {
   if (html) return html;
-  const plainText = String(text || '');
-  const code = plainText
+
+  const code = text
     .split('\n')
     .map((line) => `<div>${escapePlainText(line)}</div>`)
     .join('');
   return `<div>${code}</div>`;
 };
 
-const parseClipboardHtml = (clipboardPayload) => {
+const parseClipboardHtml = (clipboardPayload: ClipboardPayload): HTMLElement => {
   const parser = new DOMParser();
   const doc = parser.parseFromString(getClipboardHtml(clipboardPayload), 'text/html');
-  return doc.body.querySelector('div') || doc.body;
+  return doc.body.querySelector('div') ?? doc.body;
 };
 
-const normalizeText = (text) => String(text || '').replace(/\r\n?/gu, '\n');
+const normalizeText = (text: string): string => text.replace(/\r\n?/gu, '\n');
 
-const readClipboardFromNavigator = async () => {
+const readClipboardFromNavigator = async (): Promise<ClipboardPayload | null> => {
   if (!navigator.clipboard || typeof navigator.clipboard.read !== 'function') return null;
 
   const items = await navigator.clipboard.read();
@@ -143,14 +155,14 @@ const readClipboardFromNavigator = async () => {
   return html || text ? { html, text } : null;
 };
 
-const readClipboardFromLegacyPaste = () =>
+const readClipboardFromLegacyPaste = (): Promise<ClipboardPayload> =>
   new Promise((resolve, reject) => {
     if (!document.queryCommandSupported || !document.queryCommandSupported('paste')) {
       reject(new Error('Clipboard paste is not supported in this webview.'));
       return;
     }
 
-    let timeoutId;
+    let timeoutId = 0;
     const cleanup = () => {
       document.removeEventListener('paste', onPaste, true);
       window.clearTimeout(timeoutId);
@@ -158,11 +170,11 @@ const readClipboardFromLegacyPaste = () =>
       pasteTargetNode.textContent = '';
     };
 
-    const onPaste = (event) => {
+    const onPaste = (event: ClipboardEvent) => {
       cleanup();
       resolve({
-        html: event.clipboardData && event.clipboardData.getData('text/html'),
-        text: event.clipboardData && event.clipboardData.getData('text/plain')
+        html: event.clipboardData?.getData('text/html') ?? '',
+        text: event.clipboardData?.getData('text/plain') ?? ''
       });
     };
 
@@ -181,7 +193,7 @@ const readClipboardFromLegacyPaste = () =>
     }
   });
 
-export const readClipboardCode = async (expectedText) => {
+export const readClipboardCode = async (expectedText: string): Promise<ClipboardPayload> => {
   const expected = normalizeText(expectedText);
 
   for (let attempt = 0; attempt < 3; attempt++) {
@@ -201,7 +213,10 @@ export const readClipboardCode = async (expectedText) => {
   throw new Error('Failed to read the latest syntax-highlighted clipboard preview.');
 };
 
-export const renderClipboardCode = (config, clipboardPayload) => {
+export const renderClipboardCode = (
+  config: CodeSnapConfig,
+  clipboardPayload: ClipboardPayload
+): number => {
   const code = parseClipboardHtml(clipboardPayload);
 
   snippetNode.style.fontSize = code.style.fontSize || '';
@@ -215,7 +230,7 @@ export const renderClipboardCode = (config, clipboardPayload) => {
   return snippetNode.querySelectorAll('.line').length;
 };
 
-export const renderCode = (config, lines) => {
+export const renderCode = (config: CodeSnapConfig, lines: readonly RenderLine[]): number => {
   snippetNode.style.fontSize = '';
   snippetNode.style.lineHeight = '';
   snippetNode.style.fontFamily = '';
