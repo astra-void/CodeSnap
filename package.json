@@ -2,17 +2,20 @@
   "name": "codesnap",
   "displayName": "CodeSnap",
   "description": "📷 Take beautiful screenshots of your code",
-  "version": "1.3.4",
+  "version": "1.3.5",
   "repository": {
     "type": "git",
-    "url": "https://github.com/kufii/CodeSnap"
+    "url": "https://github.com/astra-void/CodeSnap"
   },
-  "publisher": "adpyke",
+  "publisher": "astra-void",
   "icon": "icon.png",
   "license": "MIT",
   "engines": {
-    "vscode": "^1.52.0"
+    "vscode": "^1.110.0"
   },
+  "extensionKind": [
+    "ui"
+  ],
   "keywords": [
     "screenshot",
     "snippet",
@@ -26,9 +29,6 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [
-    "onCommand:codesnap.start"
-  ],
   "main": "./src/extension.js",
   "contributes": {
     "commands": [
@@ -40,7 +40,8 @@
     "menus": {
       "editor/context": [
         {
-          "command": "codesnap.start"
+          "command": "codesnap.start",
+          "when": "editorHasSelection"
         }
       ]
     },
@@ -127,25 +128,31 @@
   },
   "scripts": {
     "lint": "eslint .",
+    "test": "mocha \"test/**/*.test.js\"",
     "format": "prettier --write \"**/*.{js,jsx,md,json,css,prettierrc,eslintrc,html}\"",
     "check:format": "prettier --check \"**/*.{js,jsx,md,json,css,prettierrc,eslintrc,html}\"",
     "check": "npm run lint && npm run check:format"
   },
   "devDependencies": {
-    "eslint": "^7.24.0",
+    "@types/glob": "^9.0.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^25.4.0",
+    "@types/vscode": "^1.110.0",
+    "@vscode/vsce": "^3.7.1",
+    "eslint": "^10.0.3",
     "eslint-config-adpyke-es6": "^1.4.13",
-    "eslint-config-prettier": "^8.2.0",
-    "prettier": "^2.2.1",
-    "@types/vscode": "^1.52.0",
-    "@types/glob": "^7.1.3",
-    "@types/mocha": "^8.2.2",
-    "@types/node": "^14.14.40",
-    "glob": "^7.1.6",
-    "mocha": "^8.3.2",
-    "typescript": "^4.2.4",
-    "vscode-test": "^1.5.2"
+    "eslint-config-prettier": "^10.1.8",
+    "glob": "^13.0.6",
+    "mocha": "^11.7.5",
+    "prettier": "^3.8.1",
+    "typescript": "^5.9.3",
+    "vscode-test": "^1.6.1"
   },
   "dependencies": {
-    "dom-to-image-even-more": "^1.0.4"
+    "dom-to-image-even-more": "^1.0.4",
+    "jsonc-parser": "^3.3.1",
+    "plist": "^3.1.0",
+    "vscode-oniguruma": "^2.0.1",
+    "vscode-textmate": "^9.3.2"
   }
 }

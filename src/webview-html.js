@@ -1,27 +1,62 @@
-<!DOCTYPE html>
+'use strict';
+
+const buildWebviewHtml = ({ cspSource, nonce, styleUri, domToImageUri, scriptUri }) => `<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; img-src %CSP_SOURCE% data: https:; script-src %CSP_SOURCE%; style-src 'unsafe-inline' %CSP_SOURCE%;"
+      content="default-src 'none'; img-src ${cspSource} data:; script-src 'nonce-${nonce}' ${cspSource}; style-src 'unsafe-inline' ${cspSource}; font-src ${cspSource};"
     />
-    <title>CodeSnap 📸</title>
-    <link rel="stylesheet" href="./style.css" />
-    <script
-      src="../node_modules/dom-to-image-even-more/dist/dom-to-image-more.min.js"
-      async
-    ></script>
-    <script src="./src/index.js" type="module"></script>
+    <title>CodeSnap</title>
+    <link rel="stylesheet" href="${styleUri}" />
+    <script nonce="${nonce}" src="${domToImageUri}"></script>
+    <script nonce="${nonce}" type="module">
+      const vscode =
+        globalThis.__codesnapVsCodeApi || (globalThis.__codesnapVsCodeApi = acquireVsCodeApi());
+      const whenDomReady =
+        document.readyState === "loading"
+          ? new Promise((resolve) =>
+              document.addEventListener("DOMContentLoaded", resolve, { once: true })
+            )
+          : Promise.resolve();
+
+      const showBootError = (message) => {
+        const statusNode = document.getElementById("status");
+        const shutterNode = document.getElementById("save");
+
+        if (statusNode) {
+          statusNode.hidden = false;
+          statusNode.dataset.kind = "error";
+          statusNode.textContent = message;
+        }
+
+        if (shutterNode) {
+          shutterNode.classList.add("is-disabled");
+          shutterNode.setAttribute("aria-disabled", "true");
+        }
+
+        vscode.postMessage({ type: 'webviewError', message });
+      };
+
+      whenDomReady
+        .then(() => import("${scriptUri}"))
+        .then(({ bootstrap }) => bootstrap())
+        .catch((error) => {
+          const message =
+            "CodeSnap 📸: Failed to initialize the preview webview." +
+            (error && error.message ? " " + error.message : "");
+          showBootError(message);
+        });
+    </script>
   </head>
 
   <body>
     <div id="save-container">
       <svg
         id="save"
-        class="shutter"
+        class="shutter is-disabled"
         xmlns="http://www.w3.org/2000/svg"
         xmlns:xlink="http://www.w3.org/1999/xlink"
         version="1.1"
@@ -29,6 +64,7 @@
         y="0px"
         viewBox="0 0 28.3 28.3"
         xml:space="preserve"
+        aria-disabled="true"
       >
         <g>
           <g>
@@ -77,6 +113,9 @@
       </svg>
     </div>
 
+    <div id="status" data-kind="booting" role="status">Preparing preview...</div>
+    <div id="clipboard-paste-target" contenteditable="true" aria-hidden="true"></div>
+
     <div id="snippet-scroll">
       <div id="snippet-container">
         <div id="window">
@@ -95,4 +134,6 @@
 
     <div id="flash-fx"></div>
   </body>
-</html>
+</html>`;
+
+module.exports = { buildWebviewHtml };
